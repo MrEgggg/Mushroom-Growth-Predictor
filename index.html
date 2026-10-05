@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mushroom Yield Model</title>
+<meta name="description" content="A data-driven model that scores grow-room conditions and predicts mushroom yield, built from 122 cultivation trials.">
+<style>
+:root {
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --text: #1f2421;
+  --muted: #5d665f;
+  --line: #e3e0d8;
+  --accent: #2f6b4f;
+  --accent-text: #ffffff;
+  --green: #2f8f5b;
+  --yellow: #c79a1a;
+  --red: #c4483a;
+  --green-bg: #e4f3ea;
+  --yellow-bg: #faf0d2;
+  --red-bg: #f8e1dd;
+  --radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14181a;
+    --surface: #1c2124;
+    --text: #e8ebe7;
+    --muted: #9aa59d;
+    --line: #2d3438;
+    --accent: #6cc496;
+    --accent-text: #0c1a13;
+    --green: #5ac18a;
+    --yellow: #e0b53d;
+    --red: #ec7c6e;
+    --green-bg: #17302a;
+    --yellow-bg: #332c14;
+    --red-bg: #3a1f1c;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+header.hero { padding: 56px 0 32px; }
+h1 { font-size: clamp(1.9rem, 5vw, 2.8rem); line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.02em; }
+h2 { font-size: 1.55rem; margin: 0 0 12px; letter-spacing: -0.01em; }
+h3 { font-size: 1.1rem; margin: 24px 0 8px; }
+p { margin: 0 0 12px; }
+.lede { font-size: 1.15rem; color: var(--muted); max-width: 640px; }
+section { padding: 36px 0; border-top: 1px solid var(--line); }
+a { color: var(--accent); }
+.btn {
+  display: inline-block; background: var(--accent); color: var(--accent-text);
+  padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: 600;
+}
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); margin-left: 8px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 28px 0 8px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+.stat b { display: block; font-size: 1.7rem; letter-spacing: -0.02em; }
+.stat span { color: var(--muted); font-size: 0.9rem; }
+
+/* calculator */
+.calc { display: grid; grid-template-columns: 1fr; gap: 20px; }
+@media (min-width: 820px) { .calc { grid-template-columns: 360px 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+label { display: block; font-size: 0.88rem; color: var(--muted); margin: 12px 0 4px; }
+label:first-child { margin-top: 0; }
+select, input[type="number"] {
+  width: 100%; padding: 9px 10px; font: inherit; color: var(--text);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+}
+select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hint { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+.result-top { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.big { font-size: 3.2rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.badge { padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 0.9rem; }
+.badge.Excellent, .badge.Good { background: var(--green-bg); color: var(--green); }
+.badge.Fair { background: var(--yellow-bg); color: var(--yellow); }
+.badge.Poor { background: var(--red-bg); color: var(--red); }
+.meter { height: 10px; background: var(--line); border-radius: 999px; margin: 16px 0 4px; position: relative; overflow: hidden; }
+.meter i { position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: 0.25; }
+.meter b { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+.kv { display: flex; gap: 24px; flex-wrap: wrap; margin: 12px 0; }
+.kv div span { display: block; font-size: 0.8rem; color: var(--muted); }
+.kv div b { font-size: 1.15rem; }
+.lights { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 16px 0; }
+.light { border-radius: 10px; padding: 8px 10px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
+.light::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
+.light.green { background: var(--green-bg); color: var(--green); }
+.light.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.light.red { background: var(--red-bg); color: var(--red); }
+.light span { color: var(--text); }
+ul.tips { margin: 8px 0 0; padding-left: 20px; }
+ul.tips li { margin-bottom: 6px; }
+.warn { background: var(--yellow-bg); border-radius: 10px; padding: 10px 12px; font-size: 0.9rem; margin-top: 10px; }
+
+/* tables / charts */
+.table-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+th { font-weight: 600; color: var(--muted); font-size: 0.82rem; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.heat td { text-align: center; font-variant-numeric: tabular-nums; }
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart svg text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+.chart .axis { stroke: var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
+pre { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; overflow-x: auto; }
+.callout { background: var(--surface); border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 6px; }
+footer { padding: 32px 0 56px; color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>Predicting mushroom yield from grow-room conditions</h1>
+  <p class="lede">A simple model fitted on 122 cultivation trials across six species. Enter your conditions, get a predicted yield, a grade, and conditions to investigate.</p>
+  <p><a class="btn" href="#calculator">Try the calculator</a><a class="btn ghost" href="#how">How it works</a></p>
+  <div class="stats">
+    <div class="stat"><b id="stat-n"></b><span>trials</span></div>
+    <div class="stat"><b id="stat-species"></b><span>species</span></div>
+    <div class="stat"><b id="stat-r2"></b><span>R² (fit quality)</span></div>
+    <div class="stat"><b id="stat-err"></b><span>residual SD, BE points</span></div>
+  </div>
+</header>
+
+<section id="calculator">
+  <p class="callout">Data source: 122 cultivation records confirmed by the project owner as their own measured trials. Collection protocols and flush count are not documented in the supplied files. Results describe this dataset; independent performance has not been established.</p>
+  <h2>Yield calculator</h2>
+  <p>Biological efficiency (BE) is fresh yield divided by substrate dry weight, as a percentage. A BE of 90% means 900 g of mushrooms from 1,000 g of dry substrate.</p>
+  <div class="calc">
+    <div class="card">
+      <label for="species">Species</label>
+      <select id="species"></select>
+      <label for="substrate">Substrate</label>
+      <select id="substrate"></select>
+      <div class="row">
+        <div>
+          <label for="temp">Temperature (°F)</label>
+          <input id="temp" type="number" value="60" step="0.5">
+        </div>
+        <div>
+          <label for="hum">Humidity (%)</label>
+          <input id="hum" type="number" value="85" step="1">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="co2">CO2 (ppm)</label>
+          <input id="co2" type="number" value="550" step="10">
+        </div>
+        <div>
+          <label for="moist">Substrate moisture (%)</label>
+          <input id="moist" type="number" value="64" step="1">
+          <div class="hint">Optional, used for the light only</div>
+        </div>
+      </div>
+      <label for="dry">Substrate dry weight (g)</label>
+      <input id="dry" type="number" value="1000" step="50" min="0.01">
+      <div class="hint">Optional. Positive dry mass; leave blank for BE only. Your entry is preserved when changing species.</div>
+    </div>
+    <div class="card" id="result" aria-live="polite"></div>
+  </div>
+  <p class="hint" style="margin-top:12px">The predicted number uses species, substrate, temperature and CO2. Humidity and moisture only drive the colored lights. Estimates are rough for combinations with few trials.</p>
+</section>
+
+<section id="findings">
+  <h2>Key findings</h2>
+  <ul>
+    <li><strong>CO2 is the strongest signal.</strong> The fitted equation associates an extra 100 ppm with about <span id="co2-100"></span> fewer BE points, holding its other inputs fixed; this does not establish a causal effect. Trials at 750 ppm or more averaged around 50% BE, against 80% or better below that.</li>
+    <li><strong>Summer records had lower yields.</strong> Summer trials averaged about 53% BE against about 81% in the other seasons, a drop of roughly 28 points.</li>
+    <li><strong>Substrate groups differed.</strong> Blue Oyster on hardwood sawdust reached about 100% BE in winter, against about 65% on supplemented sawdust.</li>
+    <li><strong>Pink Oyster on wheat straw had lower winter yields.</strong> In winter (about 57°F) it fell to 35 to 37% BE, against about 76% in fall.</li>
+  </ul>
+  <h3>Average BE by species and season</h3>
+  <p class="hint">Cells show average BE (%) and record count, pooled across substrates. These comparisons do not isolate season from substrate or other conditions.</p><div class="table-scroll card" id="heatmap"></div>
+</section>
+
+<section id="charts">
+  <h2>The data</h2>
+  <div class="charts">
+    <div class="card chart"><h3 style="margin-top:0">Model fit</h3><div id="chart-fit"></div><p class="hint">Points on the dashed line would be perfect predictions.</p></div>
+    <div class="card chart"><h3 style="margin-top:0">BE versus CO2</h3><div id="chart-co2"></div></div>
+    <div class="card chart"><h3 style="margin-top:0">BE versus temperature</h3><div id="chart-temp"></div></div>
+  </div>
+  <div class="legend-slot"></div>
+</section>
+
+<section id="matrix">
+  <h2>Scoring matrix</h2>
+  <h3>Observed species and substrate summaries</h3>
+  <p>Observed group averages, not the regression intercepts used in the equation.</p>
+  <div class="table-scroll card" id="baselines"></div>
+
+  <h3>Condition lights</h3>
+  <p>Each band shows how much better or worse trials did, in BE points, compared with the average for the same species and substrate. Bands are shared across species, not universal cultivation targets. Inputs outside observed ranges receive an unsupported-range flag instead.</p>
+  <div class="table-scroll card">
+    <table>
+      <thead><tr><th>Factor</th><th>Band</th><th class="num">Points</th><th>Light</th></tr></thead>
+      <tbody>
+        <tr><td>CO2 (ppm)</td><td>under 550</td><td class="num">+5</td><td>Green</td></tr>
+        <tr><td></td><td>550 to 749</td><td class="num">+6 to +18*</td><td>Green</td></tr>
+        <tr><td></td><td>750 to 849</td><td class="num">−16</td><td>Red</td></tr>
+        <tr><td></td><td>850 and up</td><td class="num">−17</td><td>Red</td></tr>
+        <tr><td>Temperature (°F)</td><td>under 55</td><td class="num">+2</td><td>Green</td></tr>
+        <tr><td></td><td>55 to 59.9</td><td class="num">−1</td><td>Yellow</td></tr>
+        <tr><td></td><td>60 to 64.9</td><td class="num">+6</td><td>Green</td></tr>
+        <tr><td></td><td>65 to 69.9</td><td class="num">+15</td><td>Green</td></tr>
+        <tr><td></td><td>70 to 79.9</td><td class="num">−11</td><td>Red</td></tr>
+        <tr><td></td><td>80 and up</td><td class="num">−17</td><td>Red</td></tr>
+        <tr><td>Humidity (%)</td><td>under 75</td><td class="num">−16</td><td>Red</td></tr>
+        <tr><td></td><td>75 to 79</td><td class="num">−14</td><td>Red</td></tr>
+        <tr><td></td><td>80 to 84</td><td class="num">+5</td><td>Yellow</td></tr>
+        <tr><td></td><td>85 and up</td><td class="num">+3 to +5</td><td>Green</td></tr>
+        <tr><td>Moisture (%)</td><td>under 60</td><td class="num">−19</td><td>Red</td></tr>
+        <tr><td></td><td>60 to 62</td><td class="num">−7</td><td>Yellow</td></tr>
+        <tr><td></td><td>63 and up</td><td class="num">0 to +10</td><td>Green</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="hint" style="margin-top:8px">* Only 7 trials fell between 650 and 749 ppm. Do not add all the points together: summer conditions trigger every penalty at once, so the sum overstates the real drop.</p>
+
+  <h3>Grades</h3>
+  <p>Excellent: 85% BE or more. Good: 75 to below 85. Fair: 60 to below 75. Poor: under 60.</p>
+</section>
+
+<section id="how">
+  <h2>How the model works</h2>
+  <pre>BE (%) = a[species | substrate] + <span id="eq-bt"></span> × Temp(°F) − <span id="eq-bc"></span> × CO2(ppm)</pre>
+  <p>The result is clipped to 0 to 100 as a software constraint, not a biological maximum for BE, and predicted yield is BE ÷ 100 × substrate dry weight. Each species and substrate pair has its own starting value <em>a</em>:</p>
+  <div class="table-scroll card" id="intercepts"></div>
+  <h3>Fit quality</h3>
+  <p>R² is <span id="fit-r2"></span>. The typical error is about <span id="fit-sd"></span> BE points, and leave-one-out cross-validation gives <span id="fit-loo"></span>, which checks held-out rows within this dataset. This does not establish performance on independent farms or batches.</p>
+  <p>The error band is one residual standard deviation around the estimate, clipped to the model bounds. It is descriptive and is not a validated prediction interval. Colonization time is an observed group average, not a prediction from entered conditions.</p>
+  <h3>Worked example</h3>
+  <p>Blue Oyster on hardwood sawdust at 51°F and 470 ppm CO2: 105.09 + 1.4905 × 51 − 0.18789 × 470 ≈ 92.8% BE, so about 928 g from 1,000 g of dry substrate. The real trial came in at 100%.</p>
+</section>
+
+<section id="limits">
+  <h2>Limitations</h2>
+  <div class="callout">
+    <ul style="margin:0">
+      <li><strong>Temperature and CO2 move together</strong> in this data (correlation 0.93), so their separate effects can't be pulled apart. The positive temperature term is a correction on top of CO2, not evidence that warmer is better.</li>
+      <li><strong>Small groups.</strong> Several species and substrate pairs have only 4 to 6 trials.</li>
+      <li><strong>Observational data.</strong> The trials were not randomized, so the model shows association, not proven cause.</li>
+      <li><strong>Tested range only:</strong> <span id="range-text"></span>.</li>
+      <li><strong>Known miss:</strong> Blue Oyster on supplemented sawdust in winter is over-predicted by 10 to 14 points (about 64% observed against about 77% predicted), and Pink Oyster on wheat straw in winter by about 6. Both suggest a species-specific temperature effect the simple model leaves out.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="data">
+  <h2>Data and code</h2>
+  <p>The 122 records and fitted coefficients are embedded in this self-contained page. The original draft referenced separate CSV, dictionary, and Python files that were not supplied. <a href="README.md">Read the project documentation</a>.</p>
+  <h3>Roadmap</h3>
+  <ul>
+    <li>Run trials that vary CO2 independently of temperature.</li>
+    <li>Run each substrate in every season.</li>
+    <li>Add a cold-sensitivity term for Pink Oyster.</li>
+    <li>Add spawn rate and colonization-time prediction.</li>
+  </ul>
+</section>
+
+<footer>
+  Mushroom Yield Model · License terms pending owner selection · Predictions are estimates from a small dataset, not guarantees.
+</footer>
+
+</div>
+<script>
+// Data and coefficients retained from the supplied source; original build script was not supplied.
+window.TRIALS = [{"id":"SpZ-BlueOyster-01","species":"Blue Oyster","season":"Spring","year":2024,"temp":61.5,"hum":89.0,"co2":510.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":65.0,"colon":20.0,"yield_g":1340.0,"be":89.3},{"id":"SuZ-BlueOyster-02","species":"Blue Oyster","season":"Summer","year":2024,"temp":78.0,"hum":76.0,"co2":820.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":59.0,"colon":16.0,"yield_g":870.0,"be":58.0},{"id":"FaZ-BlueOyster-03","species":"Blue Oyster","season":"Fall","year":2024,"temp":59.5,"hum":87.0,"co2":530.0,"substrate":"Hardwood Sawdust","dry_wt":1000.0,"moist":65.0,"colon":18.0,"yield_g":870.0,"be":87.0},{"id":"WiZ-BlueOyster-04","species":"Blue Oyster","season":"Winter","year":2024,"temp":51.0,"hum":93.0,"co2":470.0,"substrate":"Hardwood Sawdust","dry_wt":1000.0,"moist":67.0,"colon":22.0,"yield_g":1000.0,"be":100.0},{"id":"SpZ-PinkOyster-01","species":"Pink Oyster","season":"Spring","year":2024,"temp":69.0,"hum":81.0,"co2":640.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":65.0,"colon":15.0,"yield_g":700.0,"be":87.5},{"id":"SuZ-PinkOyster-02","species":"Pink Oyster","season":"Summer","year":2024,"temp":87.5,"hum":82.0,"co2":920.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":62.0,"colon":10.0,"yield_g":390.0,"be":48.8},{"id":"FaZ-PinkOyster-03","species":"Pink Oyster","season":"Fall","year":2024,"temp":65.0,"hum":83.0,"co2":680.0,"substrate":"Wheat Straw","dry_wt":1000.0,"moist":64.0,"colon":17.0,"yield_g":770.0,"be":77.0},{"id":"WiZ-PinkOyster-04","species":"Pink Oyster","season":"Winter","year":2024,"temp":57.0,"hum":76.0,"co2":780.0,"substrate":"Wheat Straw","dry_wt":1000.0,"moist":59.0,"colon":21.0,"yield_g":350.0,"be":35.0},{"id":"SpZ-KingOyster-01","species":"King Oyster","season":"Spring","year":2024,"temp":62.5,"hum":86.0,"co2":590.0,"substrate":"Supplemented Sawdust","dry_wt":1200.0,"moist":65.0,"colon":25.0,"yield_g":980.0,"be":81.7},{"id":"SuZ-KingOyster-02","species":"King Oyster","season":"Summer","year":2024,"temp":81.5,"hum":70.0,"co2":900.0,"substrate":"Supplemented Sawdust","dry_wt":1200.0,"moist":61.0,"colon":19.0,"yield_g":550.0,"be":45.8},{"id":"FaZ-KingOyster-03","species":"King Oyster","season":"Fall","year":2024,"temp":60.0,"hum":89.0,"co2":570.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":66.0,"colon":27.0,"yield_g":1040.0,"be":86.7},{"id":"WiZ-KingOyster-04","species":"King Oyster","season":"Winter","year":2024,"temp":53.0,"hum":92.0,"co2":490.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":69.0,"colon":31.0,"yield_g":1180.0,"be":98.3},{"id":"SpZ-LionsMane-01","species":"Lion's Mane","season":"Spring","year":2024,"temp":63.5,"hum":91.0,"co2":540.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":65.0,"colon":22.0,"yield_g":810.0,"be":81.0},{"id":"SuZ-LionsMane-02","species":"Lion's Mane","season":"Summer","year":2024,"temp":78.5,"hum":75.0,"co2":870.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":59.0,"colon":17.0,"yield_g":460.0,"be":46.0},{"id":"FaZ-LionsMane-03","species":"Lion's Mane","season":"Fall","year":2024,"temp":59.0,"hum":93.0,"co2":510.0,"substrate":"Hardwood Sawdust","dry_wt":1000.0,"moist":64.0,"colon":24.0,"yield_g":750.0,"be":75.0},{"id":"WiZ-LionsMane-04","species":"Lion's Mane","season":"Winter","year":2024,"temp":52.0,"hum":96.0,"co2":480.0,"substrate":"Hardwood Sawdust","dry_wt":1000.0,"moist":67.0,"colon":28.0,"yield_g":830.0,"be":83.0},{"id":"SpZ-Shiitake-01","species":"Shiitake","season":"Spring","year":2024,"temp":64.0,"hum":86.0,"co2":590.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":60.0,"colon":53.0,"yield_g":1450.0,"be":72.5},{"id":"SuZ-Shiitake-02","species":"Shiitake","season":"Summer","year":2024,"temp":82.5,"hum":65.0,"co2":920.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":57.0,"colon":44.0,"yield_g":940.0,"be":47.0},{"id":"FaZ-Shiitake-03","species":"Shiitake","season":"Fall","year":2024,"temp":61.0,"hum":89.0,"co2":570.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":61.0,"colon":57.0,"yield_g":1530.0,"be":76.5},{"id":"WiZ-Shiitake-04","species":"Shiitake","season":"Winter","year":2024,"temp":55.0,"hum":91.0,"co2":510.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":62.0,"colon":64.0,"yield_g":1680.0,"be":84.0},{"id":"SpA-PearlOyster-01","species":"Pearl Oyster","season":"Spring","year":2025,"temp":68.0,"hum":83.0,"co2":590.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":65.0,"colon":16.0,"yield_g":850.0,"be":85.0},{"id":"SuA-PearlOyster-02","species":"Pearl Oyster","season":"Summer","year":2025,"temp":81.0,"hum":71.0,"co2":860.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":62.0,"colon":13.0,"yield_g":630.0,"be":63.0},{"id":"FaA-PearlOyster-03","species":"Pearl Oyster","season":"Fall","year":2025,"temp":63.5,"hum":85.0,"co2":550.0,"substrate":"Wheat Straw","dry_wt":1200.0,"moist":68.0,"colon":18.0,"yield_g":930.0,"be":77.5},{"id":"WiA-PearlOyster-04","species":"Pearl Oyster","season":"Winter","year":2025,"temp":55.5,"hum":89.0,"co2":500.0,"substrate":"Wheat Straw","dry_wt":1200.0,"moist":70.0,"colon":22.0,"yield_g":1060.0,"be":88.3},{"id":"SpA-BlueOyster-05","species":"Blue Oyster","season":"Spring","year":2025,"temp":62.5,"hum":87.0,"co2":530.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":65.0,"colon":19.0,"yield_g":1330.0,"be":88.7},{"id":"SuA-BlueOyster-06","species":"Blue Oyster","season":"Summer","year":2025,"temp":77.5,"hum":77.0,"co2":810.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":60.0,"colon":15.0,"yield_g":900.0,"be":60.0},{"id":"FaA-BlueOyster-07","species":"Blue Oyster","season":"Fall","year":2025,"temp":60.0,"hum":86.0,"co2":540.0,"substrate":"Hardwood Sawdust","dry_wt":1000.0,"moist":64.0,"colon":17.0,"yield_g":860.0,"be":86.0},{"id":"WiA-BlueOyster-08","species":"Blue Oyster","season":"Winter","year":2025,"temp":51.5,"hum":92.0,"co2":480.0,"substrate":"Hardwood Sawdust","dry_wt":1000.0,"moist":66.0,"colon":21.0,"yield_g":990.0,"be":99.0},{"id":"SpA-PinkOyster-05","species":"Pink Oyster","season":"Spring","year":2025,"temp":69.5,"hum":81.0,"co2":640.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":65.0,"colon":14.0,"yield_g":690.0,"be":86.3},{"id":"SuA-PinkOyster-06","species":"Pink Oyster","season":"Summer","year":2025,"temp":85.0,"hum":83.0,"co2":910.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":63.0,"colon":11.0,"yield_g":440.0,"be":55.0},{"id":"FaA-PinkOyster-07","species":"Pink Oyster","season":"Fall","year":2025,"temp":65.5,"hum":82.0,"co2":690.0,"substrate":"Wheat Straw","dry_wt":1000.0,"moist":65.0,"colon":16.0,"yield_g":760.0,"be":76.0},{"id":"WiA-PinkOyster-08","species":"Pink Oyster","season":"Winter","year":2025,"temp":57.5,"hum":77.0,"co2":770.0,"substrate":"Wheat Straw","dry_wt":1000.0,"moist":60.0,"colon":20.0,"yield_g":370.0,"be":37.0},{"id":"SpA-KingOyster-05","species":"King Oyster","season":"Spring","year":2025,"temp":63.0,"hum":85.0,"co2":600.0,"substrate":"Supplemented Sawdust","dry_wt":1200.0,"moist":65.0,"colon":24.0,"yield_g":970.0,"be":80.8},{"id":"SuA-KingOyster-06","species":"King Oyster","season":"Summer","year":2025,"temp":79.5,"hum":73.0,"co2":870.0,"substrate":"Supplemented Sawdust","dry_wt":1200.0,"moist":62.0,"colon":20.0,"yield_g":600.0,"be":50.0},{"id":"FaA-KingOyster-07","species":"King Oyster","season":"Fall","year":2025,"temp":60.5,"hum":88.0,"co2":580.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":67.0,"colon":26.0,"yield_g":1030.0,"be":85.8},{"id":"WiA-KingOyster-08","species":"King Oyster","season":"Winter","year":2025,"temp":53.5,"hum":91.0,"co2":490.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":68.0,"colon":30.0,"yield_g":1160.0,"be":96.7},{"id":"SpA-LionsMane-05","species":"Lion's Mane","season":"Spring","year":2025,"temp":64.0,"hum":90.0,"co2":550.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":65.0,"colon":21.0,"yield_g":800.0,"be":80.0},{"id":"SuA-LionsMane-06","species":"Lion's Mane","season":"Summer","year":2025,"temp":76.5,"hum":79.0,"co2":840.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":60.0,"colon":18.0,"yield_g":510.0,"be":51.0},{"id":"FaA-LionsMane-07","species":"Lion's Mane","season":"Fall","year":2025,"temp":59.5,"hum":92.0,"co2":520.0,"substrate":"Hardwood Sawdust","dry_wt":1000.0,"moist":65.0,"colon":23.0,"yield_g":740.0,"be":74.0},{"id":"WiA-LionsMane-08","species":"Lion's Mane","season":"Winter","year":2025,"temp":52.5,"hum":95.0,"co2":490.0,"substrate":"Hardwood Sawdust","dry_wt":1000.0,"moist":68.0,"colon":27.0,"yield_g":820.0,"be":82.0},{"id":"SpA-Shiitake-05","species":"Shiitake","season":"Spring","year":2025,"temp":64.5,"hum":85.0,"co2":600.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":60.0,"colon":52.0,"yield_g":1430.0,"be":71.5},{"id":"SuA-Shiitake-06","species":"Shiitake","season":"Summer","year":2025,"temp":80.5,"hum":70.0,"co2":890.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":58.0,"colon":45.0,"yield_g":1010.0,"be":50.5},{"id":"FaA-Shiitake-07","species":"Shiitake","season":"Fall","year":2025,"temp":61.5,"hum":88.0,"co2":580.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":62.0,"colon":56.0,"yield_g":1520.0,"be":76.0},{"id":"WiA-Shiitake-08","species":"Shiitake","season":"Winter","year":2025,"temp":55.5,"hum":90.0,"co2":520.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":63.0,"colon":63.0,"yield_g":1660.0,"be":83.0},{"id":"SpB-PearlOyster-01","species":"Pearl Oyster","season":"Spring","year":2026,"temp":67.5,"hum":83.0,"co2":590.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":65.0,"colon":16.0,"yield_g":855.0,"be":85.5},{"id":"SuB-PearlOyster-02","species":"Pearl Oyster","season":"Summer","year":2026,"temp":82.0,"hum":70.0,"co2":870.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":61.0,"colon":13.0,"yield_g":615.0,"be":61.5},{"id":"FaB-PearlOyster-03","species":"Pearl Oyster","season":"Fall","year":2026,"temp":63.0,"hum":86.0,"co2":550.0,"substrate":"Wheat Straw","dry_wt":1200.0,"moist":67.0,"colon":18.0,"yield_g":935.0,"be":77.9},{"id":"WiB-PearlOyster-04","species":"Pearl Oyster","season":"Winter","year":2026,"temp":54.0,"hum":91.0,"co2":490.0,"substrate":"Wheat Straw","dry_wt":1200.0,"moist":69.0,"colon":23.0,"yield_g":1065.0,"be":88.8},{"id":"SpC-BlueOyster-01","species":"Blue Oyster","season":"Spring","year":2026,"temp":62.0,"hum":88.0,"co2":520.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":65.0,"colon":19.0,"yield_g":1325.0,"be":88.3},{"id":"SuC-BlueOyster-02","species":"Blue Oyster","season":"Summer","year":2026,"temp":78.5,"hum":75.0,"co2":810.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":59.0,"colon":16.0,"yield_g":880.0,"be":58.7},{"id":"FaC-BlueOyster-03","species":"Blue Oyster","season":"Fall","year":2026,"temp":59.5,"hum":87.0,"co2":530.0,"substrate":"Hardwood Sawdust","dry_wt":1000.0,"moist":65.0,"colon":18.0,"yield_g":865.0,"be":86.5},{"id":"WiC-BlueOyster-04","species":"Blue Oyster","season":"Winter","year":2026,"temp":50.5,"hum":93.0,"co2":470.0,"substrate":"Hardwood Sawdust","dry_wt":1000.0,"moist":67.0,"colon":22.0,"yield_g":995.0,"be":99.5},{"id":"SpC-PinkOyster-01","species":"Pink Oyster","season":"Spring","year":2026,"temp":68.5,"hum":82.0,"co2":650.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":65.0,"colon":15.0,"yield_g":695.0,"be":86.9},{"id":"SuC-PinkOyster-02","species":"Pink Oyster","season":"Summer","year":2026,"temp":86.5,"hum":80.0,"co2":930.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":62.0,"colon":10.0,"yield_g":400.0,"be":50.0},{"id":"FaC-PinkOyster-03","species":"Pink Oyster","season":"Fall","year":2026,"temp":64.5,"hum":83.0,"co2":690.0,"substrate":"Wheat Straw","dry_wt":1000.0,"moist":64.0,"colon":17.0,"yield_g":765.0,"be":76.5},{"id":"WiC-PinkOyster-04","species":"Pink Oyster","season":"Winter","year":2026,"temp":56.5,"hum":78.0,"co2":760.0,"substrate":"Wheat Straw","dry_wt":1000.0,"moist":60.0,"colon":21.0,"yield_g":365.0,"be":36.5},{"id":"SpC-KingOyster-01","species":"King Oyster","season":"Spring","year":2026,"temp":62.0,"hum":86.0,"co2":590.0,"substrate":"Supplemented Sawdust","dry_wt":1200.0,"moist":65.0,"colon":25.0,"yield_g":975.0,"be":81.3},{"id":"SuC-KingOyster-02","species":"King Oyster","season":"Summer","year":2026,"temp":81.0,"hum":71.0,"co2":890.0,"substrate":"Supplemented Sawdust","dry_wt":1200.0,"moist":61.0,"colon":19.0,"yield_g":560.0,"be":46.7},{"id":"FaC-KingOyster-03","species":"King Oyster","season":"Fall","year":2026,"temp":59.5,"hum":89.0,"co2":570.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":66.0,"colon":27.0,"yield_g":1035.0,"be":86.3},{"id":"WiC-KingOyster-04","species":"King Oyster","season":"Winter","year":2026,"temp":52.5,"hum":92.0,"co2":480.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":69.0,"colon":31.0,"yield_g":1170.0,"be":97.5},{"id":"SpC-LionsMane-01","species":"Lion's Mane","season":"Spring","year":2026,"temp":63.0,"hum":91.0,"co2":540.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":65.0,"colon":22.0,"yield_g":805.0,"be":80.5},{"id":"SuC-LionsMane-02","species":"Lion's Mane","season":"Summer","year":2026,"temp":78.0,"hum":76.0,"co2":860.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":59.0,"colon":17.0,"yield_g":470.0,"be":47.0},{"id":"FaC-LionsMane-03","species":"Lion's Mane","season":"Fall","year":2026,"temp":58.5,"hum":93.0,"co2":510.0,"substrate":"Hardwood Sawdust","dry_wt":1000.0,"moist":64.0,"colon":24.0,"yield_g":745.0,"be":74.5},{"id":"WiC-LionsMane-04","species":"Lion's Mane","season":"Winter","year":2026,"temp":51.5,"hum":96.0,"co2":470.0,"substrate":"Hardwood Sawdust","dry_wt":1000.0,"moist":67.0,"colon":28.0,"yield_g":825.0,"be":82.5},{"id":"SpC-Shiitake-01","species":"Shiitake","season":"Spring","year":2026,"temp":63.5,"hum":86.0,"co2":590.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":60.0,"colon":53.0,"yield_g":1440.0,"be":72.0},{"id":"SuC-Shiitake-02","species":"Shiitake","season":"Summer","year":2026,"temp":82.0,"hum":66.0,"co2":910.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":57.0,"colon":44.0,"yield_g":950.0,"be":47.5},{"id":"FaC-Shiitake-03","species":"Shiitake","season":"Fall","year":2026,"temp":60.5,"hum":89.0,"co2":570.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":61.0,"colon":57.0,"yield_g":1525.0,"be":76.3},{"id":"WiC-Shiitake-04","species":"Shiitake","season":"Winter","year":2026,"temp":54.5,"hum":91.0,"co2":510.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":62.0,"colon":64.0,"yield_g":1670.0,"be":83.5},{"id":"SpZ-PearlOyster-05","species":"Pearl Oyster","season":"Spring","year":2023,"temp":69.0,"hum":81.0,"co2":610.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":64.0,"colon":16.0,"yield_g":835.0,"be":83.5},{"id":"SuZ-PearlOyster-06","species":"Pearl Oyster","season":"Summer","year":2023,"temp":83.0,"hum":68.0,"co2":860.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":60.0,"colon":12.0,"yield_g":580.0,"be":58.0},{"id":"FaZ-BlueOyster-09","species":"Blue Oyster","season":"Fall","year":2023,"temp":61.0,"hum":85.0,"co2":550.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":66.0,"colon":19.0,"yield_g":1310.0,"be":87.3},{"id":"WiZ-BlueOyster-10","species":"Blue Oyster","season":"Winter","year":2023,"temp":53.0,"hum":90.0,"co2":490.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":68.0,"colon":21.0,"yield_g":1010.0,"be":67.3},{"id":"SpZ-PinkOyster-05","species":"Pink Oyster","season":"Spring","year":2023,"temp":71.0,"hum":79.0,"co2":660.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":64.0,"colon":14.0,"yield_g":670.0,"be":83.8},{"id":"SuZ-PinkOyster-06","species":"Pink Oyster","season":"Summer","year":2023,"temp":85.5,"hum":81.0,"co2":910.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":61.0,"colon":10.0,"yield_g":410.0,"be":51.3},{"id":"FaZ-KingOyster-05","species":"King Oyster","season":"Fall","year":2023,"temp":62.0,"hum":87.0,"co2":580.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":65.0,"colon":26.0,"yield_g":1010.0,"be":84.2},{"id":"WiZ-KingOyster-06","species":"King Oyster","season":"Winter","year":2023,"temp":55.0,"hum":90.0,"co2":510.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":67.0,"colon":30.0,"yield_g":1140.0,"be":95.0},{"id":"SpZ-LionsMane-05","species":"Lion's Mane","season":"Spring","year":2023,"temp":65.0,"hum":89.0,"co2":560.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":64.0,"colon":21.0,"yield_g":785.0,"be":78.5},{"id":"SuZ-LionsMane-06","species":"Lion's Mane","season":"Summer","year":2023,"temp":78.5,"hum":74.0,"co2":860.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":58.0,"colon":17.0,"yield_g":480.0,"be":48.0},{"id":"FaZ-Shiitake-05","species":"Shiitake","season":"Fall","year":2023,"temp":63.0,"hum":87.0,"co2":570.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":61.0,"colon":55.0,"yield_g":1490.0,"be":74.5},{"id":"WiZ-Shiitake-06","species":"Shiitake","season":"Winter","year":2023,"temp":57.0,"hum":89.0,"co2":530.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":62.0,"colon":62.0,"yield_g":1630.0,"be":81.5},{"id":"SpA-PearlOyster-09","species":"Pearl Oyster","season":"Spring","year":2024,"temp":67.5,"hum":82.0,"co2":600.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":65.0,"colon":16.0,"yield_g":845.0,"be":84.5},{"id":"SuA-PearlOyster-10","species":"Pearl Oyster","season":"Summer","year":2024,"temp":81.5,"hum":72.0,"co2":840.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":63.0,"colon":13.0,"yield_g":620.0,"be":62.0},{"id":"FaA-BlueOyster-11","species":"Blue Oyster","season":"Fall","year":2024,"temp":60.5,"hum":86.0,"co2":540.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":65.0,"colon":18.0,"yield_g":1290.0,"be":86.0},{"id":"WiA-BlueOyster-12","species":"Blue Oyster","season":"Winter","year":2024,"temp":52.0,"hum":91.0,"co2":480.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":67.0,"colon":22.0,"yield_g":970.0,"be":64.7},{"id":"SpA-PinkOyster-09","species":"Pink Oyster","season":"Spring","year":2024,"temp":70.0,"hum":80.0,"co2":650.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":65.0,"colon":14.0,"yield_g":685.0,"be":85.6},{"id":"SuA-PinkOyster-10","species":"Pink Oyster","season":"Summer","year":2024,"temp":86.0,"hum":82.0,"co2":900.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":62.0,"colon":11.0,"yield_g":430.0,"be":53.8},{"id":"FaA-KingOyster-09","species":"King Oyster","season":"Fall","year":2024,"temp":61.0,"hum":88.0,"co2":570.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":66.0,"colon":26.0,"yield_g":1025.0,"be":85.4},{"id":"WiA-KingOyster-10","species":"King Oyster","season":"Winter","year":2024,"temp":54.0,"hum":91.0,"co2":500.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":68.0,"colon":30.0,"yield_g":1155.0,"be":96.3},{"id":"SpA-LionsMane-09","species":"Lion's Mane","season":"Spring","year":2024,"temp":64.0,"hum":90.0,"co2":550.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":65.0,"colon":22.0,"yield_g":795.0,"be":79.5},{"id":"SuA-LionsMane-10","species":"Lion's Mane","season":"Summer","year":2024,"temp":77.0,"hum":76.0,"co2":850.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":59.0,"colon":17.0,"yield_g":485.0,"be":48.5},{"id":"FaA-Shiitake-09","species":"Shiitake","season":"Fall","year":2024,"temp":62.0,"hum":88.0,"co2":580.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":61.0,"colon":56.0,"yield_g":1505.0,"be":75.3},{"id":"WiA-Shiitake-10","species":"Shiitake","season":"Winter","year":2024,"temp":56.0,"hum":90.0,"co2":520.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":62.0,"colon":63.0,"yield_g":1640.0,"be":82.0},{"id":"SpB-PearlOyster-05","species":"Pearl Oyster","season":"Spring","year":2025,"temp":68.0,"hum":83.0,"co2":590.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":65.0,"colon":16.0,"yield_g":850.0,"be":85.0},{"id":"SuB-PearlOyster-06","species":"Pearl Oyster","season":"Summer","year":2025,"temp":82.5,"hum":70.0,"co2":850.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":61.0,"colon":13.0,"yield_g":605.0,"be":60.5},{"id":"FaB-BlueOyster-13","species":"Blue Oyster","season":"Fall","year":2025,"temp":59.5,"hum":87.0,"co2":530.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":64.0,"colon":18.0,"yield_g":1280.0,"be":85.3},{"id":"WiB-BlueOyster-14","species":"Blue Oyster","season":"Winter","year":2025,"temp":51.0,"hum":92.0,"co2":470.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":66.0,"colon":22.0,"yield_g":960.0,"be":64.0},{"id":"SpB-PinkOyster-11","species":"Pink Oyster","season":"Spring","year":2025,"temp":69.0,"hum":81.0,"co2":640.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":65.0,"colon":15.0,"yield_g":690.0,"be":86.3},{"id":"SuB-PinkOyster-12","species":"Pink Oyster","season":"Summer","year":2025,"temp":87.0,"hum":81.0,"co2":920.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":62.0,"colon":10.0,"yield_g":385.0,"be":48.1},{"id":"FaB-KingOyster-11","species":"King Oyster","season":"Fall","year":2025,"temp":60.5,"hum":89.0,"co2":570.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":67.0,"colon":27.0,"yield_g":1030.0,"be":85.8},{"id":"WiB-KingOyster-12","species":"King Oyster","season":"Winter","year":2025,"temp":53.0,"hum":92.0,"co2":490.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":69.0,"colon":31.0,"yield_g":1165.0,"be":97.1},{"id":"SpB-LionsMane-11","species":"Lion's Mane","season":"Spring","year":2025,"temp":63.5,"hum":91.0,"co2":540.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":65.0,"colon":22.0,"yield_g":800.0,"be":80.0},{"id":"SuB-LionsMane-12","species":"Lion's Mane","season":"Summer","year":2025,"temp":76.0,"hum":78.0,"co2":830.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":60.0,"colon":18.0,"yield_g":500.0,"be":50.0},{"id":"FaB-Shiitake-11","species":"Shiitake","season":"Fall","year":2025,"temp":61.0,"hum":89.0,"co2":570.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":61.0,"colon":57.0,"yield_g":1515.0,"be":75.8},{"id":"WiB-Shiitake-12","species":"Shiitake","season":"Winter","year":2025,"temp":55.0,"hum":91.0,"co2":510.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":62.0,"colon":64.0,"yield_g":1655.0,"be":82.8},{"id":"SpC-PearlOyster-05","species":"Pearl Oyster","season":"Spring","year":2026,"temp":67.0,"hum":84.0,"co2":580.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":65.0,"colon":17.0,"yield_g":845.0,"be":84.5},{"id":"SuC-PearlOyster-06","species":"Pearl Oyster","season":"Summer","year":2026,"temp":81.0,"hum":73.0,"co2":830.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":63.0,"colon":12.0,"yield_g":595.0,"be":59.5},{"id":"FaC-BlueOyster-15","species":"Blue Oyster","season":"Fall","year":2026,"temp":60.0,"hum":86.0,"co2":540.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":65.0,"colon":18.0,"yield_g":1285.0,"be":85.7},{"id":"WiC-BlueOyster-16","species":"Blue Oyster","season":"Winter","year":2026,"temp":51.5,"hum":91.0,"co2":480.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":67.0,"colon":22.0,"yield_g":965.0,"be":64.3},{"id":"SpC-PinkOyster-13","species":"Pink Oyster","season":"Spring","year":2026,"temp":68.0,"hum":82.0,"co2":650.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":65.0,"colon":15.0,"yield_g":685.0,"be":85.6},{"id":"SuC-PinkOyster-14","species":"Pink Oyster","season":"Summer","year":2026,"temp":85.0,"hum":82.0,"co2":910.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":62.0,"colon":11.0,"yield_g":415.0,"be":51.9},{"id":"FaC-KingOyster-13","species":"King Oyster","season":"Fall","year":2026,"temp":60.0,"hum":88.0,"co2":580.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":66.0,"colon":27.0,"yield_g":1020.0,"be":85.0},{"id":"WiC-KingOyster-14","species":"King Oyster","season":"Winter","year":2026,"temp":52.0,"hum":92.0,"co2":490.0,"substrate":"Hardwood Sawdust","dry_wt":1200.0,"moist":69.0,"colon":31.0,"yield_g":1150.0,"be":95.8},{"id":"SpC-LionsMane-13","species":"Lion's Mane","season":"Spring","year":2026,"temp":63.0,"hum":90.0,"co2":550.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":65.0,"colon":22.0,"yield_g":790.0,"be":79.0},{"id":"SuC-LionsMane-14","species":"Lion's Mane","season":"Summer","year":2026,"temp":76.5,"hum":77.0,"co2":840.0,"substrate":"Master's Mix (Sawdust/Soy)","dry_wt":1000.0,"moist":59.0,"colon":18.0,"yield_g":490.0,"be":49.0},{"id":"FaC-Shiitake-13","species":"Shiitake","season":"Fall","year":2026,"temp":60.5,"hum":88.0,"co2":580.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":61.0,"colon":57.0,"yield_g":1510.0,"be":75.5},{"id":"WiC-Shiitake-14","species":"Shiitake","season":"Winter","year":2026,"temp":54.0,"hum":91.0,"co2":510.0,"substrate":"Oak Sawdust Blocks","dry_wt":2000.0,"moist":62.0,"colon":64.0,"yield_g":1645.0,"be":82.3},{"id":"SpC-PearlOyster-07","species":"Pearl Oyster","season":"Spring","year":2026,"temp":68.5,"hum":82.0,"co2":590.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":65.0,"colon":16.0,"yield_g":850.0,"be":85.0},{"id":"SuC-PearlOyster-08","species":"Pearl Oyster","season":"Summer","year":2026,"temp":82.5,"hum":71.0,"co2":850.0,"substrate":"Hardwood Sawdust + Bran","dry_wt":1000.0,"moist":62.0,"colon":13.0,"yield_g":610.0,"be":61.0},{"id":"FaC-BlueOyster-17","species":"Blue Oyster","season":"Fall","year":2026,"temp":59.0,"hum":87.0,"co2":530.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":64.0,"colon":18.0,"yield_g":1275.0,"be":85.0},{"id":"WiC-BlueOyster-18","species":"Blue Oyster","season":"Winter","year":2026,"temp":50.5,"hum":92.0,"co2":470.0,"substrate":"Supplemented Sawdust","dry_wt":1500.0,"moist":66.0,"colon":22.0,"yield_g":955.0,"be":63.7},{"id":"SpC-PinkOyster-15","species":"Pink Oyster","season":"Spring","year":2026,"temp":69.5,"hum":81.0,"co2":640.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":65.0,"colon":14.0,"yield_g":695.0,"be":86.9},{"id":"SuC-PinkOyster-16","species":"Pink Oyster","season":"Summer","year":2026,"temp":86.5,"hum":80.0,"co2":920.0,"substrate":"Spent Coffee + Sawdust","dry_wt":800.0,"moist":62.0,"colon":11.0,"yield_g":425.0,"be":53.1}];
+window.MODEL = {"equation":"BE = a[group] + b_T*Temp_F + b_CO2*CO2_ppm, clipped to 0-100","intercepts":{"Blue Oyster | Hardwood Sawdust":105.09,"Blue Oyster | Supplemented Sawdust":90.29,"King Oyster | Hardwood Sawdust":106.59,"King Oyster | Supplemented Sawdust":96.72,"Lion's Mane | Hardwood Sawdust":89.09,"Lion's Mane | Master's Mix (Sawdust/Soy)":90.31,"Pearl Oyster | Hardwood Sawdust + Bran":96.75,"Pearl Oyster | Wheat Straw":93.35,"Pink Oyster | Spent Coffee + Sawdust":99.63,"Pink Oyster | Wheat Straw":102.25,"Shiitake | Oak Sawdust Blocks":94.03},"b_T":1.4905,"b_CO2":-0.18789,"se_T":0.2103,"se_CO2":0.01329,"resid_sd":5.5,"r2":0.895,"loo_rmse":5.95,"n":122,"co2_given_temp":{"slope":13.155,"intercept":-224.0,"sd":55.2},"valid_range":{"temp_f":[50.5,87.5],"humidity_pct":[65.0,96.0],"co2_ppm":[470.0,930.0]},"groups":{"Blue Oyster | Hardwood Sawdust":{"n":6,"mean_be":93.0,"best_be":100.0,"worst_be":86.0,"colonization_days":19.7},"Blue Oyster | Supplemented Sawdust":{"n":16,"mean_be":74.8,"best_be":89.3,"worst_be":58.0,"colonization_days":19.1},"King Oyster | Hardwood Sawdust":{"n":14,"mean_be":91.1,"best_be":98.3,"worst_be":84.2,"colonization_days":28.6},"King Oyster | Supplemented Sawdust":{"n":6,"mean_be":64.4,"best_be":81.7,"worst_be":45.8,"colonization_days":22.0},"Lion's Mane | Hardwood Sawdust":{"n":6,"mean_be":78.5,"best_be":83.0,"worst_be":74.0,"colonization_days":25.7},"Lion's Mane | Master's Mix (Sawdust/Soy)":{"n":14,"mean_be":64.1,"best_be":81.0,"worst_be":46.0,"colonization_days":19.6},"Pearl Oyster | Hardwood Sawdust + Bran":{"n":14,"mean_be":72.8,"best_be":85.5,"worst_be":58.0,"colonization_days":14.4},"Pearl Oyster | Wheat Straw":{"n":4,"mean_be":83.1,"best_be":88.8,"worst_be":77.5,"colonization_days":20.2},"Pink Oyster | Spent Coffee + Sawdust":{"n":16,"mean_be":68.8,"best_be":87.5,"worst_be":48.1,"colonization_days":12.5},"Pink Oyster | Wheat Straw":{"n":6,"mean_be":56.3,"best_be":77.0,"worst_be":35.0,"colonization_days":18.7},"Shiitake | Oak Sawdust Blocks":{"n":20,"mean_be":73.5,"best_be":84.0,"worst_be":47.0,"colonization_days":56.5}}};
+</script>
+<script>
+// Pure scoring functions (no DOM) so they can be tested in Node and reused by the page.
+(function (root) {
+  "use strict";
+
+  function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+
+  // BE (%) = a[group] + b_T * Temp_F + b_CO2 * CO2_ppm, clipped to 0-100
+  function predictBE(model, group, tempF, co2) {
+    var a = model.intercepts[group];
+    if (a === undefined) throw new Error("Unknown group: " + group);
+    return clamp(a + model.b_T * tempF + model.b_CO2 * co2, 0, 100);
+  }
+
+  function grade(be) {
+    if (be >= 85) return "Excellent";
+    if (be >= 75) return "Good";
+    if (be >= 60) return "Fair";
+    return "Poor";
+  }
+
+  // Traffic-light matrix: bands taken from the group-adjusted trial averages.
+  function lightCO2(v)  { return v >= 750 ? "red" : "green"; }
+  function lightTemp(v) { return v >= 70 ? "red" : (v >= 55 && v < 60) ? "yellow" : "green"; }
+  function lightHum(v)  { return v < 80 ? "red" : v < 85 ? "yellow" : "green"; }
+  function lightMoist(v){ return v < 60 ? "red" : v < 63 ? "yellow" : "green"; }
+
+  var TIPS = {
+    co2: {
+      red: "CO2 is 750 ppm or higher. Trials at this level lost about 16 BE points. Investigate ventilation alongside temperature and species needs; this association does not isolate the effect of ventilation."
+    },
+    temp: {
+      red: "Temperature is 70°F or higher. Trials this warm lost 11 to 17 points. Review species-specific temperature needs; these records do not isolate temperature from other seasonal factors.",
+      yellow: "55 to 60°F is borderline. It suited the oysters in winter, but Pink Oyster on wheat straw did poorly here."
+    },
+    hum: {
+      red: "Humidity is under 80%. Trials averaged about 15 points lower. Review humidity alongside ventilation and species-specific needs.",
+      yellow: "Humidity is 80 to 84%. Trials above 85% did a little better."
+    },
+    moist: {
+      red: "Substrate moisture is under 60%. Trials averaged about 19 points lower. Review moisture measurement and species/substrate needs; this is a dataset association.",
+      yellow: "Substrate moisture is 60 to 62%. Trials at 63% or more did noticeably better."
+    }
+  };
+
+  function assess(model, input) {
+    // input: {group, temp, hum, co2, moist (optional), dryWt (optional)}
+    if (![input.temp, input.hum, input.co2].every(Number.isFinite)) throw new Error("Enter finite temperature, humidity and CO2 values.");
+    if (input.temp < -459.67 || input.hum < 0 || input.hum > 100 || input.co2 < 0 || input.co2 > 1000000) throw new Error("Enter a physically valid temperature, humidity (0–100%) and CO2 (0–1,000,000 ppm).");
+    if (input.moist != null && (!Number.isFinite(input.moist) || input.moist < 0 || input.moist > 100)) throw new Error("Substrate moisture must be between 0 and 100%.");
+    if (input.dryWt != null && (!Number.isFinite(input.dryWt) || input.dryWt <= 0)) throw new Error("Dry substrate weight must be greater than zero, or left blank.");
+    var be = predictBE(model, input.group, input.temp, input.co2);
+    var lights = {
+      co2: lightCO2(input.co2),
+      temp: lightTemp(input.temp),
+      hum: lightHum(input.hum)
+    };
+    if (input.moist !== undefined && input.moist !== null && !isNaN(input.moist)) {
+      lights.moist = lightMoist(input.moist);
+    }
+    // Fix-first list: reds first, then yellows; CO2 first because it is the strongest driver.
+    var order = ["co2", "temp", "hum", "moist"], tips = [];
+    ["red", "yellow"].forEach(function (level) {
+      order.forEach(function (k) {
+        if (lights[k] === level && TIPS[k][level]) tips.push(TIPS[k][level]);
+      });
+    });
+    var range = model.valid_range;
+    [["temp",input.temp,range.temp_f],["hum",input.hum,range.humidity_pct],["co2",input.co2,range.co2_ppm],["moist",input.moist,[57,70]]].forEach(function (d) {
+      if (d[1] != null && (d[1] < d[2][0] || d[1] > d[2][1])) { lights[d[0]] = "yellow"; tips = []; }
+    });
+    var sd = model.resid_sd;
+    var g = model.groups[input.group] || {};
+    var warnings = [];
+    if (input.moist != null && (input.moist < 57 || input.moist > 70)) warnings.push("Moisture is outside the observed range (57–70%). The diagnostic band is unsupported here.");
+    var vr = model.valid_range;
+    if (input.temp < vr.temp_f[0] || input.temp > vr.temp_f[1])
+      warnings.push("Temperature is outside the tested range (" + vr.temp_f[0] + " to " + vr.temp_f[1] + "°F); the prediction is an extrapolation.");
+    if (input.hum < vr.humidity_pct[0] || input.hum > vr.humidity_pct[1])
+      warnings.push("Humidity is outside the tested range (" + vr.humidity_pct[0] + " to " + vr.humidity_pct[1] + "%).");
+    if (input.co2 < vr.co2_ppm[0] || input.co2 > vr.co2_ppm[1])
+      warnings.push("CO2 is outside the tested range (" + vr.co2_ppm[0] + " to " + vr.co2_ppm[1] + " ppm); the prediction is an extrapolation.");
+    var ct = model.co2_given_temp;
+    if (ct && Math.abs(input.co2 - (ct.intercept + ct.slope * input.temp)) > 2 * ct.sd)
+      warnings.push("This temperature and CO2 combination is unusual: in the trials, warm rooms also had high CO2 and cool rooms had low CO2. The estimate is less reliable here.");
+    if (g.n !== undefined && g.n <= 6)
+      warnings.push("Only " + g.n + " trials back this species/substrate combination, so treat the estimate as rough.");
+    return {
+      be: be,
+      grade: grade(be),
+      low: clamp(be - sd, 0, 100),
+      high: clamp(be + sd, 0, 100),
+      yieldG: input.dryWt ? be / 100 * input.dryWt : null,
+      colonizationDays: g.colonization_days === undefined ? null : g.colonization_days,
+      lights: lights,
+      tips: tips,
+      warnings: warnings
+    };
+  }
+
+  var api = { predictBE: predictBE, grade: grade, assess: assess,
+              lightCO2: lightCO2, lightTemp: lightTemp, lightHum: lightHum, lightMoist: lightMoist };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.MushroomModel = api;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+<script>
+(function () {
+  "use strict";
+  var M = window.MODEL, T = window.TRIALS, MM = window.MushroomModel;
+  var $ = function (id) { return document.getElementById(id); };
+
+  var SPECIES_COLORS = {
+    "Blue Oyster": "#3b7dd8", "King Oyster": "#8a5a2b", "Lion's Mane": "#d9a21b",
+    "Pearl Oyster": "#7a8a99", "Pink Oyster": "#d6548a", "Shiitake": "#2f8f5b"
+  };
+  var LIGHT_LABEL = { green: "Dataset favorable", yellow: "Review / unsupported", red: "Review condition" };
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function mean(a) { return a.reduce(function (s, x) { return s + x; }, 0) / a.length; }
+  function median(a) { var b = a.slice().sort(function (x, y) { return x - y; }); var m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; }
+
+  // ---- group lookups -------------------------------------------------------
+  var groups = Object.keys(M.intercepts);
+  var speciesList = Array.from(new Set(groups.map(function (g) { return g.split(" | ")[0]; }))).sort();
+  function substratesFor(sp) {
+    return groups.filter(function (g) { return g.indexOf(sp + " | ") === 0; }).map(function (g) { return g.split(" | ")[1]; });
+  }
+
+  // ---- calculator ----------------------------------------------------------
+  var el = {
+    species: $("species"), substrate: $("substrate"), temp: $("temp"), hum: $("hum"),
+    co2: $("co2"), moist: $("moist"), dry: $("dry")
+  };
+
+  function fillSpecies() {
+    el.species.innerHTML = speciesList.map(function (s) { return '<option>' + esc(s) + "</option>"; }).join("");
+  }
+  function fillSubstrates() {
+    el.substrate.innerHTML = substratesFor(el.species.value).map(function (s) { return '<option>' + esc(s) + "</option>"; }).join("");
+  }
+  function setDefaultDryWeight() {
+    var g = el.species.value + " | " + el.substrate.value;
+    var w = T.filter(function (t) { return t.species + " | " + t.substrate === g; }).map(function (t) { return t.dry_wt; });
+    if (w.length) el.dry.value = median(w);
+  }
+
+  function num(input) { var v = parseFloat(input.value); return isNaN(v) ? null : v; }
+
+  function renderResult() {
+    var group = el.species.value + " | " + el.substrate.value;
+    var temp = num(el.temp), hum = num(el.hum), co2 = num(el.co2);
+    var out = $("result");
+    if (temp === null || hum === null || co2 === null) {
+      out.innerHTML = '<p class="hint">Enter temperature, humidity and CO2 to see a prediction.</p>';
+      return;
+    }
+    var r;
+    try { r = MM.assess(M, { group: group, temp: temp, hum: hum, co2: co2, moist: num(el.moist), dryWt: num(el.dry) }); } catch (error) { out.innerHTML = '<p class="warn">' + esc(error.message) + "</p>"; return; }
+    var lightDefs = [["co2", "CO2", co2 + " ppm"], ["temp", "Temperature", temp + "°F"], ["hum", "Humidity", hum + "%"]];
+    if (r.lights.moist) lightDefs.push(["moist", "Moisture", num(el.moist) + "%"]);
+
+    var html = '<div class="result-top"><div class="big">' + r.be.toFixed(1) + '%</div>' +
+      '<span class="badge ' + r.grade + '">' + r.grade + '</span></div>' +
+      '<div class="hint">Predicted biological efficiency (descriptive error band ' + r.low.toFixed(0) + ' to ' + r.high.toFixed(0) + '%)</div>' +
+      '<div class="meter" aria-hidden="true"><i style="left:' + r.low + '%;width:' + (r.high - r.low) + '%"></i><b style="left:calc(' + r.be + '% - 1.5px)"></b></div>' +
+      '<div class="kv">' +
+      (r.yieldG !== null ? '<div><span>Predicted fresh yield</span><b>' + Math.round(r.yieldG).toLocaleString() + ' g</b></div>' : "") +
+      (r.colonizationDays !== null ? '<div><span>Group-average colonization</span><b>' + Math.round(r.colonizationDays) + ' days</b></div>' : "") +
+      '</div>' +
+      '<div class="lights">' + lightDefs.map(function (d) {
+        return '<div class="light ' + r.lights[d[0]] + '"><div><strong>' + d[1] + '</strong><br><span>' + esc(d[2]) + " · " + LIGHT_LABEL[r.lights[d[0]]] + "</span></div></div>";
+      }).join("") + "</div>";
+    if (r.tips.length) {
+      html += "<h3>Conditions to investigate</h3><ul class=\"tips\">" + r.tips.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>";
+    } else {
+      html += '<p>The shared diagnostic bands show no flagged conditions. Check the limitations and any range warnings below.</p>';
+    }
+    r.warnings.forEach(function (w) { html += '<div class="warn">' + esc(w) + "</div>"; });
+    out.innerHTML = html;
+  }
+
+  // ---- charts --------------------------------------------------------------
+  function scatterSVG(opts) {
+    var W = 420, H = 320, m = { l: 46, r: 12, t: 12, b: 40 };
+    var iw = W - m.l - m.r, ih = H - m.t - m.b;
+    var sx = function (v) { return m.l + (v - opts.xmin) / (opts.xmax - opts.xmin) * iw; };
+    var sy = function (v) { return m.t + ih - (v - opts.ymin) / (opts.ymax - opts.ymin) * ih; };
+    var s = '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(opts.label) + '">';
+    function ticks(min, max, step) { var a = []; for (var v = min; v <= max + 1e-9; v += step) a.push(v); return a; }
+    ticks(opts.xmin, opts.xmax, opts.xstep).forEach(function (v) {
+      s += '<line class="axis" x1="' + sx(v) + '" x2="' + sx(v) + '" y1="' + m.t + '" y2="' + (m.t + ih) + '"/>' +
+        '<text x="' + sx(v) + '" y="' + (H - m.b + 16) + '" text-anchor="middle">' + v + "</text>";
+    });
+    ticks(opts.ymin, opts.ymax, opts.ystep).forEach(function (v) {
+      s += '<line class="axis" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + sy(v) + '" y2="' + sy(v) + '"/>' +
+        '<text x="' + (m.l - 6) + '" y="' + (sy(v) + 4) + '" text-anchor="end">' + v + "</text>";
+    });
+    if (opts.diagonal) s += '<line x1="' + sx(opts.xmin) + '" y1="' + sy(opts.xmin) + '" x2="' + sx(opts.xmax) + '" y2="' + sy(opts.xmax) + '" stroke="currentColor" stroke-dasharray="4 4" opacity="0.4"/>';
+    if (opts.vline) s += '<line x1="' + sx(opts.vline) + '" x2="' + sx(opts.vline) + '" y1="' + m.t + '" y2="' + (m.t + ih) + '" stroke="#c4483a" stroke-dasharray="4 4" opacity="0.7"/>' +
+      '<text x="' + (sx(opts.vline) + 4) + '" y="' + (m.t + 12) + '" style="fill:#c4483a">750 ppm</text>';
+    opts.points.forEach(function (p) {
+      s += '<circle cx="' + sx(p.x).toFixed(1) + '" cy="' + sy(p.y).toFixed(1) + '" r="4" fill="' + SPECIES_COLORS[p.species] + '" fill-opacity="0.75" stroke="#fff" stroke-opacity="0.6" stroke-width="0.8"><title>' + esc(p.tip) + "</title></circle>";
+    });
+    s += '<text x="' + (m.l + iw / 2) + '" y="' + (H - 6) + '" text-anchor="middle">' + esc(opts.xlabel) + "</text>";
+    s += '<text transform="translate(12 ' + (m.t + ih / 2) + ') rotate(-90)" text-anchor="middle">' + esc(opts.ylabel) + "</text>";
+    return s + "</svg>";
+  }
+
+  function legendHTML() {
+    return '<div class="legend">' + speciesList.map(function (s) { return '<span><i style="background:' + SPECIES_COLORS[s] + '"></i>' + esc(s) + "</span>"; }).join("") + "</div>";
+  }
+
+  function renderCharts() {
+    var fit = T.map(function (t) {
+      var p = MM.predictBE(M, t.species + " | " + t.substrate, t.temp, t.co2);
+      return { x: t.be, y: p, species: t.species, tip: t.id + ": observed " + t.be + "%, model " + p.toFixed(1) + "%" };
+    });
+    $("chart-fit").innerHTML = scatterSVG({
+      label: "Observed versus model biological efficiency", points: fit, diagonal: true,
+      xmin: 30, xmax: 105, xstep: 15, ymin: 30, ymax: 105, ystep: 15,
+      xlabel: "Observed BE (%)", ylabel: "Model BE (%)"
+    });
+    var co2 = T.map(function (t) {
+      return { x: t.co2, y: t.be, species: t.species, tip: t.id + ": " + t.co2 + " ppm, " + t.be + "%" };
+    });
+    $("chart-co2").innerHTML = scatterSVG({
+      label: "Biological efficiency versus CO2", points: co2, vline: 750,
+      xmin: 400, xmax: 1000, xstep: 100, ymin: 30, ymax: 105, ystep: 15,
+      xlabel: "CO2 (ppm)", ylabel: "Observed BE (%)"
+    });
+    var temp = T.map(function (t) {
+      return { x: t.temp, y: t.be, species: t.species, tip: t.id + ": " + t.temp + "°F, " + t.be + "%" };
+    });
+    $("chart-temp").innerHTML = scatterSVG({
+      label: "Biological efficiency versus temperature", points: temp,
+      xmin: 45, xmax: 90, xstep: 5, ymin: 30, ymax: 105, ystep: 15,
+      xlabel: "Temperature (°F)", ylabel: "Observed BE (%)"
+    });
+    document.querySelectorAll(".legend-slot").forEach(function (n) { n.innerHTML = legendHTML(); });
+  }
+
+  function heatColor(v) {
+    // 35 (poor) -> 100 (excellent); red-ish through yellow to green, soft so text stays readable
+    var t = Math.max(0, Math.min(1, (v - 35) / 65));
+    var hue = 5 + t * 125;
+    return "hsla(" + hue.toFixed(0) + ", 55%, 50%, 0.35)";
+  }
+
+  function renderHeatmap() {
+    var seasons = ["Spring", "Summer", "Fall", "Winter"];
+    var h = '<table class="heat"><thead><tr><th>Species</th>' + seasons.map(function (s) { return "<th>" + s + "</th>"; }).join("") + "</tr></thead><tbody>";
+    speciesList.forEach(function (sp) {
+      h += "<tr><th style=\"text-align:left\">" + esc(sp) + "</th>";
+      seasons.forEach(function (se) {
+        var v = T.filter(function (t) { return t.species === sp && t.season === se; }).map(function (t) { return t.be; });
+        h += v.length ? '<td style="background:' + heatColor(mean(v)) + '">' + mean(v).toFixed(0) + "<br><small>n=" + v.length + "</small></td>" : "<td>–</td>";
+      });
+      h += "</tr>";
+    });
+    $("heatmap").innerHTML = h + "</tbody></table>";
+  }
+
+  function renderBaselines() {
+    var rows = groups.map(function (g) { return { g: g, s: M.groups[g] }; })
+      .sort(function (a, b) { return b.s.mean_be - a.s.mean_be; });
+    var h = '<table><thead><tr><th>Species | Substrate</th><th class="num">Trials</th><th class="num">Avg BE</th><th class="num">Best</th><th class="num">Worst</th><th class="num">Colonization (days)</th></tr></thead><tbody>';
+    rows.forEach(function (r) {
+      h += "<tr><td>" + esc(r.g.replace(" | ", " · ")) + '</td><td class="num">' + r.s.n + '</td><td class="num">' + r.s.mean_be.toFixed(0) +
+        '</td><td class="num">' + r.s.best_be.toFixed(0) + '</td><td class="num">' + r.s.worst_be.toFixed(0) +
+        '</td><td class="num">' + r.s.colonization_days.toFixed(0) + "</td></tr>";
+    });
+    $("baselines").innerHTML = h + "</tbody></table>";
+  }
+
+  function renderIntercepts() {
+    var h = '<table><thead><tr><th>Species | Substrate</th><th class="num">a</th></tr></thead><tbody>';
+    groups.forEach(function (g) {
+      h += "<tr><td>" + esc(g.replace(" | ", " · ")) + '</td><td class="num">' + M.intercepts[g].toFixed(1) + "</td></tr>";
+    });
+    $("intercepts").innerHTML = h + "</tbody></table>";
+  }
+
+  // ---- stats + equation text -------------------------------------------------
+  function fillStats() {
+    $("stat-n").textContent = M.n;
+    $("stat-species").textContent = speciesList.length;
+    $("stat-r2").textContent = M.r2.toFixed(3);
+    $("stat-err").textContent = "±" + M.resid_sd;
+    $("eq-bt").textContent = M.b_T.toFixed(4);
+    $("eq-bc").textContent = Math.abs(M.b_CO2).toFixed(5);
+    $("fit-loo").textContent = M.loo_rmse;
+    $("fit-sd").textContent = M.resid_sd;
+    $("fit-r2").textContent = M.r2.toFixed(3);
+    $("co2-100").textContent = Math.abs(M.b_CO2 * 100).toFixed(0);
+    var vr = M.valid_range;
+    $("range-text").textContent = vr.temp_f[0] + " to " + vr.temp_f[1] + "°F, " + vr.humidity_pct[0] + " to " + vr.humidity_pct[1] + "% humidity, " + vr.co2_ppm[0] + " to " + vr.co2_ppm[1] + " ppm CO2";
+  }
+
+  // ---- init --------------------------------------------------------------
+  fillSpecies();
+  el.species.value = "Blue Oyster";
+  fillSubstrates();
+  el.substrate.value = "Hardwood Sawdust";
+  setDefaultDryWeight();
+  fillStats();
+  renderCharts();
+  renderHeatmap();
+  renderBaselines();
+  renderIntercepts();
+  renderResult();
+
+  el.species.addEventListener("change", function () { fillSubstrates(); renderResult(); });
+  el.substrate.addEventListener("change", renderResult);
+  ["temp", "hum", "co2", "moist", "dry"].forEach(function (k) { el[k].addEventListener("input", renderResult); });
+})();
+</script>
+</body>
+</html>
