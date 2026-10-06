@@ -20,7 +20,9 @@
   --green-bg: #e4f3ea;
   --yellow-bg: #faf0d2;
   --red-bg: #f8e1dd;
-  --radius: 12px;
+  --radius: 3px;
+  --rule: #b9b5a8;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -29,6 +31,7 @@
     --text: #e8ebe7;
     --muted: #9aa59d;
     --line: #2d3438;
+    --rule: #4a5358;
     --accent: #6cc496;
     --accent-text: #0c1a13;
     --green: #5ac18a;
@@ -49,8 +52,8 @@ body {
 }
 .wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
 header.hero { padding: 56px 0 32px; }
-h1 { font-size: clamp(1.9rem, 5vw, 2.8rem); line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.02em; }
-h2 { font-size: 1.55rem; margin: 0 0 12px; letter-spacing: -0.01em; }
+h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(1.9rem, 5vw, 2.8rem); line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.01em; }
+h2 { font-family: var(--serif); font-weight: 600; font-size: 1.6rem; margin: 0 0 12px; }
 h3 { font-size: 1.1rem; margin: 24px 0 8px; }
 p { margin: 0 0 12px; }
 .lede { font-size: 1.15rem; color: var(--muted); max-width: 640px; }
@@ -58,7 +61,7 @@ section { padding: 36px 0; border-top: 1px solid var(--line); }
 a { color: var(--accent); }
 .btn {
   display: inline-block; background: var(--accent); color: var(--accent-text);
-  padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: 600;
+  padding: 9px 18px; border-radius: 3px; text-decoration: none; font-weight: 600;
 }
 .btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); margin-left: 8px; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 28px 0 8px; }
@@ -67,40 +70,80 @@ a { color: var(--accent); }
 .stat span { color: var(--muted); font-size: 0.9rem; }
 
 /* calculator */
-.calc { display: grid; grid-template-columns: 1fr; gap: 20px; }
-@media (min-width: 820px) { .calc { grid-template-columns: 360px 1fr; } }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
-label { display: block; font-size: 0.88rem; color: var(--muted); margin: 12px 0 4px; }
-label:first-child { margin-top: 0; }
+.calc { display: grid; grid-template-columns: 1fr; border: 1px solid var(--rule); background: var(--surface); }
+@media (min-width: 820px) { .calc { grid-template-columns: 330px 1fr; } }
+.calc-in { padding: 18px 20px 20px; background: var(--bg); border-bottom: 1px solid var(--rule); margin: 0; }
+@media (min-width: 820px) { .calc-in { border-bottom: 0; border-right: 1px solid var(--rule); } }
+.calc-in fieldset { border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
+.calc-in fieldset:last-child { margin-bottom: 0; }
+.calc-in legend { padding: 0 0 6px; margin-bottom: 4px; width: 100%; font-weight: 700; font-size: 0.86rem; border-bottom: 1px solid var(--line); }
+.f { display: grid; grid-template-columns: 1fr 132px; align-items: center; column-gap: 12px; padding: 5px 0; }
+.f.wide { grid-template-columns: 1fr; }
+.f label { font-size: 0.9rem; color: var(--text); margin: 0; }
+.f label small { color: var(--muted); font-size: 0.78rem; }
+.f.wide label { margin-bottom: 3px; }
+.inp { position: relative; }
+.inp input[type="number"] { padding-right: 46px; text-align: right; font-variant-numeric: tabular-nums; }
+.inp span { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.8rem; pointer-events: none; }
 select, input[type="number"] {
-  width: 100%; padding: 9px 10px; font: inherit; color: var(--text);
-  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  width: 100%; padding: 7px 9px; font: inherit; font-size: 0.95rem; color: var(--text);
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 2px;
 }
-select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+input[aria-invalid="true"] { border-color: var(--red); background: var(--red-bg); }
+.msg { grid-column: 1 / -1; margin: 3px 0 0; font-size: 0.8rem; color: var(--red); text-align: right; }
+.msg:empty { display: none; }
 .hint { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
-.result-top { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-.big { font-size: 3.2rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
-.badge { padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 0.9rem; }
-.badge.Excellent, .badge.Good { background: var(--green-bg); color: var(--green); }
-.badge.Fair { background: var(--yellow-bg); color: var(--yellow); }
-.badge.Poor { background: var(--red-bg); color: var(--red); }
-.meter { height: 10px; background: var(--line); border-radius: 999px; margin: 16px 0 4px; position: relative; overflow: hidden; }
-.meter i { position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: 0.25; }
-.meter b { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--accent); }
-.kv { display: flex; gap: 24px; flex-wrap: wrap; margin: 12px 0; }
-.kv div span { display: block; font-size: 0.8rem; color: var(--muted); }
-.kv div b { font-size: 1.15rem; }
-.lights { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 16px 0; }
-.light { border-radius: 10px; padding: 8px 10px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
-.light::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
-.light.green { background: var(--green-bg); color: var(--green); }
-.light.yellow { background: var(--yellow-bg); color: var(--yellow); }
-.light.red { background: var(--red-bg); color: var(--red); }
-.light span { color: var(--text); }
-ul.tips { margin: 8px 0 0; padding-left: 20px; }
-ul.tips li { margin-bottom: 6px; }
-.warn { background: var(--yellow-bg); border-radius: 10px; padding: 10px 12px; font-size: 0.9rem; margin-top: 10px; }
+
+.calc-out { padding: 20px 22px 22px; min-width: 0; }
+.out-label { margin: 0; font-size: 0.86rem; color: var(--muted); }
+.out-main { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin: 2px 0 4px; }
+.out-num { font-family: var(--serif); font-size: 3.4rem; line-height: 1.05; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.out-num small { font-size: 1.6rem; margin-left: 2px; }
+.out-grade { font-weight: 700; font-size: 1.05rem; }
+.out-grade.Excellent, .out-grade.Good { color: var(--green); }
+.out-grade.Fair { color: var(--yellow); }
+.out-grade.Poor { color: var(--red); }
+.out-grade.none { color: var(--muted); font-weight: 400; font-size: 0.95rem; }
+.out-sub { margin: 0; font-size: 0.88rem; color: var(--muted); }
+.out-empty { margin: 0; color: var(--muted); }
+
+.scale { margin: 18px 0 20px; }
+.scale-bar { position: relative; display: flex; height: 14px; border: 1px solid var(--rule); }
+.scale-bar > span { border-right: 1px solid var(--rule); }
+.scale-bar > span:last-of-type { border-right: 0; }
+.scale-bar i { position: absolute; top: 0; bottom: 0; background: var(--text); opacity: 0.16; }
+.scale-bar b { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1.5px; background: var(--text); }
+.scale-lab { display: flex; font-size: 0.74rem; color: var(--muted); margin-top: 4px; }
+.scale-lab span { overflow: hidden; white-space: nowrap; }
+
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 18px; margin: 0 0 18px; font-size: 0.93rem; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; font-variant-numeric: tabular-nums; }
+.facts dd small { color: var(--muted); font-size: 0.82rem; }
+
+table.cond { font-size: 0.9rem; border-top: 1px solid var(--rule); }
+table.cond th, table.cond td { padding: 6px 8px 6px 0; }
+table.cond td:last-child, table.cond th:last-child { padding-right: 0; }
+table.cond td.num { white-space: nowrap; }
+.rd { white-space: nowrap; }
+.rd::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 7px; background: currentColor; }
+.rd.green { color: var(--green); }
+.rd.yellow { color: var(--yellow); }
+.rd.red { color: var(--red); }
+.rd.out { color: var(--muted); }
+.rd.out::before { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
+@media (max-width: 520px) { table.cond .tested { display: none; } }
+
+.notes-h { font-size: 0.86rem; font-weight: 700; margin: 18px 0 4px; }
+ul.notes { margin: 0; padding-left: 18px; font-size: 0.9rem; }
+ul.notes li { margin-bottom: 5px; }
+ul.notes li.caution { color: var(--muted); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+.warn { background: var(--yellow-bg); padding: 10px 12px; font-size: 0.9rem; margin-top: 10px; }
 
 /* tables / charts */
 .table-scroll { overflow-x: auto; }
@@ -141,40 +184,39 @@ footer { padding: 32px 0 56px; color: var(--muted); font-size: 0.9rem; border-to
   <h2>Yield calculator</h2>
   <p>Biological efficiency (BE) is fresh yield divided by substrate dry weight, as a percentage. A BE of 90% means 900 g of mushrooms from 1,000 g of dry substrate.</p>
   <div class="calc">
-    <div class="card">
-      <label for="species">Species</label>
-      <select id="species"></select>
-      <label for="substrate">Substrate</label>
-      <select id="substrate"></select>
-      <div class="row">
-        <div>
-          <label for="temp">Temperature (°F)</label>
-          <input id="temp" type="number" value="60" step="0.5">
-        </div>
-        <div>
-          <label for="hum">Humidity (%)</label>
-          <input id="hum" type="number" value="85" step="1">
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label for="co2">CO2 (ppm)</label>
-          <input id="co2" type="number" value="550" step="10">
-        </div>
-        <div>
-          <label for="moist">Substrate moisture (%)</label>
-          <input id="moist" type="number" value="64" step="1">
-          <div class="hint">Optional, used for the light only</div>
-        </div>
-      </div>
-      <label for="dry">Substrate dry weight (g)</label>
-      <input id="dry" type="number" value="1000" step="50" min="0.01">
-      <div class="hint">Optional. Positive dry mass; leave blank for BE only. Your entry is preserved when changing species.</div>
-    </div>
-    <div class="card" id="result" aria-live="polite"></div>
+    <form class="calc-in" id="calc-form" novalidate>
+      <fieldset>
+        <legend>Crop</legend>
+        <div class="f wide"><label for="species">Species</label><select id="species"></select></div>
+        <div class="f wide"><label for="substrate">Substrate</label><select id="substrate"></select></div>
+      </fieldset>
+      <fieldset>
+        <legend>Room</legend>
+        <div class="f"><label for="temp">Temperature</label>
+          <div class="inp"><input id="temp" type="number" inputmode="decimal" value="60" step="any" aria-describedby="temp-msg"><span>°F</span></div>
+          <p class="msg" id="temp-msg"></p></div>
+        <div class="f"><label for="co2">CO2</label>
+          <div class="inp"><input id="co2" type="number" inputmode="decimal" value="550" step="any" aria-describedby="co2-msg"><span>ppm</span></div>
+          <p class="msg" id="co2-msg"></p></div>
+        <div class="f"><label for="hum">Humidity</label>
+          <div class="inp"><input id="hum" type="number" inputmode="decimal" value="85" step="any" aria-describedby="hum-msg"><span>%</span></div>
+          <p class="msg" id="hum-msg"></p></div>
+      </fieldset>
+      <fieldset>
+        <legend>Substrate</legend>
+        <div class="f"><label for="moist">Moisture <small>(optional)</small></label>
+          <div class="inp"><input id="moist" type="number" inputmode="decimal" value="64" step="any" aria-describedby="moist-msg"><span>%</span></div>
+          <p class="msg" id="moist-msg"></p></div>
+        <div class="f"><label for="dry">Dry weight <small>(optional)</small></label>
+          <div class="inp"><input id="dry" type="number" inputmode="decimal" value="1000" step="any" aria-describedby="dry-msg"><span>g</span></div>
+          <p class="msg" id="dry-msg"></p></div>
+      </fieldset>
+    </form>
+    <div class="calc-out" id="result" aria-live="polite"></div>
   </div>
-  <p class="hint" style="margin-top:12px">The predicted number uses species, substrate, temperature and CO2. Humidity and moisture only drive the colored lights. Estimates are rough for combinations with few trials.</p>
+  <p class="hint" style="margin-top:12px">The predicted number uses species, substrate, temperature and CO2. Humidity and moisture only feed the condition readings. Leave dry weight blank to see BE alone. Estimates are rough for combinations with few trials.</p>
 </section>
+
 
 <section id="findings">
   <h2>Key findings</h2>
@@ -290,12 +332,14 @@ window.MODEL = {"equation":"BE = a[group] + b_T*Temp_F + b_CO2*CO2_ppm, clipped 
 
   function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
 
-  // BE (%) = a[group] + b_T * Temp_F + b_CO2 * CO2_ppm, clipped to 0-100
-  function predictBE(model, group, tempF, co2) {
+  // Unclipped equation: a[group] + b_T * Temp_F + b_CO2 * CO2_ppm
+  function rawBE(model, group, tempF, co2) {
     var a = model.intercepts[group];
     if (a === undefined) throw new Error("Unknown group: " + group);
-    return clamp(a + model.b_T * tempF + model.b_CO2 * co2, 0, 100);
+    return a + model.b_T * tempF + model.b_CO2 * co2;
   }
+  // BE (%) clipped to 0-100
+  function predictBE(model, group, tempF, co2) { return clamp(rawBE(model, group, tempF, co2), 0, 100); }
 
   function grade(be) {
     if (be >= 85) return "Excellent";
@@ -309,6 +353,7 @@ window.MODEL = {"equation":"BE = a[group] + b_T*Temp_F + b_CO2*CO2_ppm, clipped 
   function lightTemp(v) { return v >= 70 ? "red" : (v >= 55 && v < 60) ? "yellow" : "green"; }
   function lightHum(v)  { return v < 80 ? "red" : v < 85 ? "yellow" : "green"; }
   function lightMoist(v){ return v < 60 ? "red" : v < 63 ? "yellow" : "green"; }
+  var LIGHT = { co2: lightCO2, temp: lightTemp, hum: lightHum, moist: lightMoist };
 
   var TIPS = {
     co2: {
@@ -328,62 +373,100 @@ window.MODEL = {"equation":"BE = a[group] + b_T*Temp_F + b_CO2*CO2_ppm, clipped 
     }
   };
 
-  function assess(model, input) {
-    // input: {group, temp, hum, co2, moist (optional), dryWt (optional)}
-    if (![input.temp, input.hum, input.co2].every(Number.isFinite)) throw new Error("Enter finite temperature, humidity and CO2 values.");
-    if (input.temp < -459.67 || input.hum < 0 || input.hum > 100 || input.co2 < 0 || input.co2 > 1000000) throw new Error("Enter a physically valid temperature, humidity (0–100%) and CO2 (0–1,000,000 ppm).");
-    if (input.moist != null && (!Number.isFinite(input.moist) || input.moist < 0 || input.moist > 100)) throw new Error("Substrate moisture must be between 0 and 100%.");
-    if (input.dryWt != null && (!Number.isFinite(input.dryWt) || input.dryWt <= 0)) throw new Error("Dry substrate weight must be greater than zero, or left blank.");
-    var be = predictBE(model, input.group, input.temp, input.co2);
-    var lights = {
-      co2: lightCO2(input.co2),
-      temp: lightTemp(input.temp),
-      hum: lightHum(input.hum)
-    };
-    if (input.moist !== undefined && input.moist !== null && !isNaN(input.moist)) {
-      lights.moist = lightMoist(input.moist);
+  // What the calculator accepts at all. Wider than the tested range on purpose:
+  // values inside these limits but outside the trials are answered as extrapolations.
+  var LIMITS = { temp: [32, 120], hum: [0, 100], co2: [0, 10000], moist: [0, 100], dry: [1, 1000000] };
+  var REQUIRED = { temp: true, hum: true, co2: true };
+  var MOIST_RANGE = [57, 70];
+  var NAMES = { co2: "CO2", temp: "Temperature", hum: "Humidity", moist: "Moisture" };
+  var UNITS = { co2: " ppm", temp: "°F", hum: "%", moist: "%" };
+
+  // Turn one text field into {value} or {error}. `bad` is the browser's "not a number" flag.
+  function parseField(key, text, bad) {
+    text = String(text == null ? "" : text).trim();
+    if (text === "" && !bad) return REQUIRED[key] ? { value: null, error: "Required." } : { value: null };
+    var v = Number(text);
+    if (bad || text === "" || !Number.isFinite(v)) return { value: null, error: "Enter a plain number." };
+    var lim = LIMITS[key];
+    if (key === "dry") {
+      if (v < 1) return { value: null, error: "Must be at least 1 g, or leave it blank." };
+      if (v > lim[1]) return { value: null, error: "Largest accepted weight is 1,000,000 g." };
+    } else if (v < lim[0] || v > lim[1]) {
+      if (key === "temp") return { value: null, error: "Enter 32 to 120°F. This field is Fahrenheit." };
+      if (key === "co2") return { value: null, error: "Enter 0 to 10,000 ppm." };
+      return { value: null, error: "Must be between 0 and 100%." };
     }
-    // Fix-first list: reds first, then yellows; CO2 first because it is the strongest driver.
-    var order = ["co2", "temp", "hum", "moist"], tips = [];
-    ["red", "yellow"].forEach(function (level) {
-      order.forEach(function (k) {
-        if (lights[k] === level && TIPS[k][level]) tips.push(TIPS[k][level]);
-      });
+    return { value: v };
+  }
+
+  function outside(v, r) { return v < r[0] || v > r[1]; }
+
+  function assess(model, input) {
+    // input: {group, temp, co2, hum (optional), moist (optional), dryWt (optional)}
+    if (!Number.isFinite(input.temp) || !Number.isFinite(input.co2)) throw new Error("Temperature and CO2 are required.");
+    if (outside(input.temp, LIMITS.temp) || outside(input.co2, LIMITS.co2)) throw new Error("Temperature or CO2 is outside the accepted limits.");
+    ["hum", "moist"].forEach(function (k) {
+      if (input[k] != null && (!Number.isFinite(input[k]) || outside(input[k], LIMITS[k]))) throw new Error(NAMES[k] + " must be between 0 and 100%.");
     });
-    var range = model.valid_range;
-    [["temp",input.temp,range.temp_f],["hum",input.hum,range.humidity_pct],["co2",input.co2,range.co2_ppm],["moist",input.moist,[57,70]]].forEach(function (d) {
-      if (d[1] != null && (d[1] < d[2][0] || d[1] > d[2][1])) { lights[d[0]] = "yellow"; tips = []; }
-    });
+    if (input.dryWt != null && (!Number.isFinite(input.dryWt) || input.dryWt < 1 || input.dryWt > LIMITS.dry[1])) throw new Error("Dry substrate weight must be at least 1 g, or left blank.");
+
+    var vr = model.valid_range;
+    var ranges = { temp: vr.temp_f, co2: vr.co2_ppm, hum: vr.humidity_pct, moist: MOIST_RANGE };
+    var raw = rawBE(model, input.group, input.temp, input.co2);
+    var be = clamp(raw, 0, 100);
     var sd = model.resid_sd;
     var g = model.groups[input.group] || {};
-    var warnings = [];
-    if (input.moist != null && (input.moist < 57 || input.moist > 70)) warnings.push("Moisture is outside the observed range (57–70%). The diagnostic band is unsupported here.");
-    var vr = model.valid_range;
-    if (input.temp < vr.temp_f[0] || input.temp > vr.temp_f[1])
-      warnings.push("Temperature is outside the tested range (" + vr.temp_f[0] + " to " + vr.temp_f[1] + "°F); the prediction is an extrapolation.");
-    if (input.hum < vr.humidity_pct[0] || input.hum > vr.humidity_pct[1])
-      warnings.push("Humidity is outside the tested range (" + vr.humidity_pct[0] + " to " + vr.humidity_pct[1] + "%).");
-    if (input.co2 < vr.co2_ppm[0] || input.co2 > vr.co2_ppm[1])
-      warnings.push("CO2 is outside the tested range (" + vr.co2_ppm[0] + " to " + vr.co2_ppm[1] + " ppm); the prediction is an extrapolation.");
+    var tempOut = outside(input.temp, ranges.temp), co2Out = outside(input.co2, ranges.co2);
     var ct = model.co2_given_temp;
-    if (ct && Math.abs(input.co2 - (ct.intercept + ct.slope * input.temp)) > 2 * ct.sd)
-      warnings.push("This temperature and CO2 combination is unusual: in the trials, warm rooms also had high CO2 and cool rooms had low CO2. The estimate is less reliable here.");
+    var unusual = !tempOut && !co2Out && !!ct && Math.abs(input.co2 - (ct.intercept + ct.slope * input.temp)) > 2 * ct.sd;
+    var extrapolated = tempOut || co2Out || unusual;
+
+    var conditions = [], lights = {}, tips = [];
+    ["co2", "temp", "hum", "moist"].forEach(function (k) {
+      var v = input[k];
+      if (v == null) return;
+      var status = outside(v, ranges[k]) ? "out" : LIGHT[k](v);
+      lights[k] = status;
+      conditions.push({ key: k, name: NAMES[k], value: v, unit: UNITS[k], range: ranges[k], status: status });
+    });
+    // Fix-first list: reds first, then yellows; CO2 first because it is the strongest driver.
+    ["red", "yellow"].forEach(function (level) {
+      conditions.forEach(function (c) { if (c.status === level && TIPS[c.key][level]) tips.push(TIPS[c.key][level]); });
+    });
+
+    var warnings = [];
+    if (tempOut || co2Out) {
+      var what = tempOut && co2Out ? "Temperature and CO2 are" : tempOut ? "Temperature is" : "CO2 is";
+      warnings.push(what + " outside what the trials covered (" + ranges.temp[0] + " to " + ranges.temp[1] + "°F, " + ranges.co2[0] + " to " + ranges.co2[1] + " ppm). The number is the equation stretched past its data, so no grade is given.");
+    }
+    if (raw > 100 || raw < 0)
+      warnings.push("The equation gives " + raw.toFixed(1) + "% here, which is shown as " + be + "% because the calculator stops at 0 and 100.");
+    if (unusual)
+      warnings.push("This temperature and CO2 combination never occurred in the trials: warm rooms also had high CO2 and cool rooms had low CO2. The number is unreliable here, so no grade is given.");
+    if (lights.hum === "out")
+      warnings.push("Humidity is outside the tested range (" + ranges.hum[0] + " to " + ranges.hum[1] + "%), so it gets no reading.");
+    if (lights.moist === "out")
+      warnings.push("Moisture is outside the observed range (" + ranges.moist[0] + " to " + ranges.moist[1] + "%), so it gets no reading.");
     if (g.n !== undefined && g.n <= 6)
       warnings.push("Only " + g.n + " trials back this species/substrate combination, so treat the estimate as rough.");
+
     return {
       be: be,
-      grade: grade(be),
+      raw: raw,
+      extrapolated: extrapolated,
+      grade: extrapolated ? null : grade(be),
       low: clamp(be - sd, 0, 100),
       high: clamp(be + sd, 0, 100),
       yieldG: input.dryWt ? be / 100 * input.dryWt : null,
       colonizationDays: g.colonization_days === undefined ? null : g.colonization_days,
       lights: lights,
+      conditions: conditions,
       tips: tips,
       warnings: warnings
     };
   }
 
-  var api = { predictBE: predictBE, grade: grade, assess: assess,
+  var api = { predictBE: predictBE, rawBE: rawBE, grade: grade, assess: assess, parseField: parseField, LIMITS: LIMITS,
               lightCO2: lightCO2, lightTemp: lightTemp, lightHum: lightHum, lightMoist: lightMoist };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.MushroomModel = api;
@@ -399,7 +482,7 @@ window.MODEL = {"equation":"BE = a[group] + b_T*Temp_F + b_CO2*CO2_ppm, clipped 
     "Blue Oyster": "#3b7dd8", "King Oyster": "#8a5a2b", "Lion's Mane": "#d9a21b",
     "Pearl Oyster": "#7a8a99", "Pink Oyster": "#d6548a", "Shiitake": "#2f8f5b"
   };
-  var LIGHT_LABEL = { green: "Dataset favorable", yellow: "Review / unsupported", red: "Review condition" };
+  var READING = { green: "Good band", yellow: "Borderline", red: "Flagged", out: "Not tested" };
 
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function mean(a) { return a.reduce(function (s, x) { return s + x; }, 0) / a.length; }
@@ -417,6 +500,7 @@ window.MODEL = {"equation":"BE = a[group] + b_T*Temp_F + b_CO2*CO2_ppm, clipped 
     species: $("species"), substrate: $("substrate"), temp: $("temp"), hum: $("hum"),
     co2: $("co2"), moist: $("moist"), dry: $("dry")
   };
+  var NUMERIC = ["temp", "co2", "hum", "moist", "dry"];
 
   function fillSpecies() {
     el.species.innerHTML = speciesList.map(function (s) { return '<option>' + esc(s) + "</option>"; }).join("");
@@ -430,38 +514,65 @@ window.MODEL = {"equation":"BE = a[group] + b_T*Temp_F + b_CO2*CO2_ppm, clipped 
     if (w.length) el.dry.value = median(w);
   }
 
-  function num(input) { var v = parseFloat(input.value); return isNaN(v) ? null : v; }
+  // Short, readable numbers whatever was typed (no 12-digit decimals, no exponent notation).
+  function fmt(v, digits) {
+    return v.toLocaleString("en-US", { maximumFractionDigits: digits === undefined ? 1 : digits });
+  }
+
+  function readFields() {
+    var values = {}, bad = false;
+    NUMERIC.forEach(function (k) {
+      var f = MM.parseField(k, el[k].value, el[k].validity && el[k].validity.badInput);
+      values[k] = f.value;
+      $(k + "-msg").textContent = f.error || "";
+      if (f.error) el[k].setAttribute("aria-invalid", "true"); else el[k].removeAttribute("aria-invalid");
+      if (f.error) bad = true;
+    });
+    values.hasError = bad;
+    return values;
+  }
+
+  function scaleHTML(r) {
+    return '<div class="scale" aria-hidden="true"><div class="scale-bar">' +
+      '<span style="width:60%"></span><span style="width:15%"></span><span style="width:10%"></span><span style="width:15%"></span>' +
+      '<i style="left:' + r.low + '%;width:' + (r.high - r.low) + '%"></i><b style="left:' + r.be + '%"></b></div>' +
+      '<div class="scale-lab"><span style="width:60%">Poor</span><span style="width:15%">Fair 60</span><span style="width:10%">Good 75</span><span style="width:15%">Excellent 85</span></div></div>';
+  }
 
   function renderResult() {
     var group = el.species.value + " | " + el.substrate.value;
-    var temp = num(el.temp), hum = num(el.hum), co2 = num(el.co2);
+    var v = readFields();
     var out = $("result");
-    if (temp === null || hum === null || co2 === null) {
-      out.innerHTML = '<p class="hint">Enter temperature, humidity and CO2 to see a prediction.</p>';
+    if (v.temp === null || v.co2 === null) {
+      out.innerHTML = '<p class="out-label">Predicted biological efficiency</p><div class="out-main"><span class="out-num">–</span></div>' +
+        '<p class="out-empty">The prediction needs a valid temperature and CO2. Check the marked ' + (v.temp === null && v.co2 === null ? "fields" : "field") + ".</p>";
       return;
     }
     var r;
-    try { r = MM.assess(M, { group: group, temp: temp, hum: hum, co2: co2, moist: num(el.moist), dryWt: num(el.dry) }); } catch (error) { out.innerHTML = '<p class="warn">' + esc(error.message) + "</p>"; return; }
-    var lightDefs = [["co2", "CO2", co2 + " ppm"], ["temp", "Temperature", temp + "°F"], ["hum", "Humidity", hum + "%"]];
-    if (r.lights.moist) lightDefs.push(["moist", "Moisture", num(el.moist) + "%"]);
+    try { r = MM.assess(M, { group: group, temp: v.temp, hum: v.hum, co2: v.co2, moist: v.moist, dryWt: v.dry }); }
+    catch (error) { out.innerHTML = '<p class="warn">' + esc(error.message) + "</p>"; return; }
 
-    var html = '<div class="result-top"><div class="big">' + r.be.toFixed(1) + '%</div>' +
-      '<span class="badge ' + r.grade + '">' + r.grade + '</span></div>' +
-      '<div class="hint">Predicted biological efficiency (descriptive error band ' + r.low.toFixed(0) + ' to ' + r.high.toFixed(0) + '%)</div>' +
-      '<div class="meter" aria-hidden="true"><i style="left:' + r.low + '%;width:' + (r.high - r.low) + '%"></i><b style="left:calc(' + r.be + '% - 1.5px)"></b></div>' +
-      '<div class="kv">' +
-      (r.yieldG !== null ? '<div><span>Predicted fresh yield</span><b>' + Math.round(r.yieldG).toLocaleString() + ' g</b></div>' : "") +
-      (r.colonizationDays !== null ? '<div><span>Group-average colonization</span><b>' + Math.round(r.colonizationDays) + ' days</b></div>' : "") +
-      '</div>' +
-      '<div class="lights">' + lightDefs.map(function (d) {
-        return '<div class="light ' + r.lights[d[0]] + '"><div><strong>' + d[1] + '</strong><br><span>' + esc(d[2]) + " · " + LIGHT_LABEL[r.lights[d[0]]] + "</span></div></div>";
-      }).join("") + "</div>";
+    var html = '<p class="out-label">Predicted biological efficiency</p>' +
+      '<div class="out-main"><span class="out-num">' + r.be.toFixed(1) + '<small>%</small></span>' +
+      (r.grade ? '<span class="out-grade ' + r.grade + '">' + r.grade + '</span>' : '<span class="out-grade none">extrapolated, no grade</span>') + '</div>' +
+      '<p class="out-sub">Typical error is ±' + M.resid_sd + ' points, so roughly ' + r.low.toFixed(0) + ' to ' + r.high.toFixed(0) + '%.</p>' +
+      scaleHTML(r) + '<dl class="facts">';
+    if (r.yieldG !== null) html += '<dt>Fresh yield</dt><dd>' + fmt(r.yieldG, 0) + ' g <small>from ' + fmt(v.dry) + ' g dry substrate</small></dd>';
+    if (r.colonizationDays !== null) html += '<dt>Colonization</dt><dd>' + Math.round(r.colonizationDays) + ' days <small>average for this group, not a forecast</small></dd>';
+    html += '</dl>';
+
+    html += '<table class="cond"><thead><tr><th>Condition</th><th class="num">Entered</th><th class="num tested">Tested range</th><th>Reading</th></tr></thead><tbody>' +
+      r.conditions.map(function (c) {
+        return '<tr><td>' + c.name + '</td><td class="num">' + fmt(c.value) + esc(c.unit) + '</td><td class="num tested">' +
+          c.range[0] + ' to ' + c.range[1] + '</td><td><span class="rd ' + c.status + '">' + READING[c.status] + '</span></td></tr>';
+      }).join("") + '</tbody></table>';
+
     if (r.tips.length) {
-      html += "<h3>Conditions to investigate</h3><ul class=\"tips\">" + r.tips.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>";
-    } else {
-      html += '<p>The shared diagnostic bands show no flagged conditions. Check the limitations and any range warnings below.</p>';
+      html += '<p class="notes-h">Look at first</p><ul class="notes">' + r.tips.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>";
     }
-    r.warnings.forEach(function (w) { html += '<div class="warn">' + esc(w) + "</div>"; });
+    if (r.warnings.length) {
+      html += '<p class="notes-h">Caveats</p><ul class="notes">' + r.warnings.map(function (w) { return '<li class="caution">' + esc(w) + "</li>"; }).join("") + "</ul>";
+    }
     out.innerHTML = html;
   }
 
@@ -595,6 +706,7 @@ window.MODEL = {"equation":"BE = a[group] + b_T*Temp_F + b_CO2*CO2_ppm, clipped 
   renderIntercepts();
   renderResult();
 
+  $("calc-form").addEventListener("submit", function (e) { e.preventDefault(); });
   el.species.addEventListener("change", function () { fillSubstrates(); renderResult(); });
   el.substrate.addEventListener("change", renderResult);
   ["temp", "hum", "co2", "moist", "dry"].forEach(function (k) { el[k].addEventListener("input", renderResult); });

@@ -2,7 +2,7 @@
 
 Predict mushroom yield from grow-room conditions, using a simple model fitted on 122 cultivation trials across six species.
 
-**Live site:** [Open the calculator](https://eggy0eggymicster-sudo.github.io/Mushroom-Growth-Predictor/)
+**Live site:** [Open the calculator](https://mregggg.github.io/Mushroom-Growth-Predictor/)
 
 Enter species, substrate, temperature, humidity and CO2, and get:
 
@@ -91,7 +91,7 @@ This repo is a single self-contained page: `index.html` holds the calculator, ch
 
 1. Upload `index.html` and `README.md` to a new GitHub repository.
 2. Open **Settings → Pages**, choose **Deploy from a branch**, select `main` and `/ (root)`, then save.
-3. After a minute the site is live at `https://eggy0eggymicster-sudo.github.io/Mushroom-Growth-Predictor/`.
+3. After a minute the site is live at `https://mregggg.github.io/Mushroom-Growth-Predictor/`.
 
 ## Roadmap
 
